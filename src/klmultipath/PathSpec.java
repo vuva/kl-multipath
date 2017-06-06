@@ -37,7 +37,11 @@ public class PathSpec {
 			System.exit(0);
 		}
 	}
-
+	
+	public String toString() {
+		return src.toString()+":"+dest.toString();
+	}
+	
 }
 
 
