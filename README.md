@@ -1,2 +1,2 @@
-# lk-multipath
-Tools for experimenting with network-coded (l,k) parallel/multipath network models
+# kl-multipath
+Tools for experimenting with network-coded (k,l) parallel/multipath network models
