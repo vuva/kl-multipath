@@ -7,6 +7,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
+import java.util.StringJoiner;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -76,7 +77,7 @@ public class KLReceiver {
 			
 			Thread listener = new Thread() {
 				public void run() {
-					byte[] rxData = new byte[1024];
+					byte[] rxData = new byte[2048];
 					FileWriter fstream = null;
 					try {
 						fstream = new FileWriter(outfile);
@@ -93,11 +94,35 @@ public class KLReceiver {
 							e.printStackTrace();
 							System.exit(1);
 						}
+						long curtime = System.nanoTime();
+
 						// extract the info from the packet
-						//long curtime = System.nanoTime();
-						long curtime = System.currentTimeMillis();
+						byte[] rxd   = rxPacket.getData();
+						int k        = ((rxd[0]&0xFF) << 24) | ((rxd[1]&0xFF) << 16) | ((rxd[2]&0xFF) << 8) | ((rxd[3]&0xFF));
+						int index    = ((rxd[4]&0xFF) << 24) | ((rxd[5]&0xFF) << 16) | ((rxd[6]&0xFF) << 8) | ((rxd[7]&0xFF));
+						int seqnum   = ((rxd[8]&0xFF) << 24) | ((rxd[9]&0xFF) << 16) | ((rxd[10]&0xFF) << 8) | ((rxd[11]&0xFF));
+						long arrival = 0;
+						for (int b=0; b<8; b++) {
+							arrival <<= 8;
+							arrival |= (rxd[12+b] & 0xFF);
+						}
+						long txtime = 0;
+						for (int b=0; b<8; b++) {
+							txtime <<= 8;
+							txtime |= (rxd[20+b] & 0xFF);
+						}
+						
+						// write the data to the log file for this thread
+						StringJoiner sj = new StringJoiner("\t","","\n");
+						sj.add(""+curtime);
+						sj.add(""+k);
+						sj.add(""+index);
+						sj.add(""+seqnum);
+						sj.add(""+arrival);
+						sj.add(""+txtime);
+						
 						try {
-							out.write(curtime+"\treceived in thread "+threadnum+"\n");
+							out.write(sj.toString());
 						} catch (IOException e) {
 							e.printStackTrace();
 							System.exit(1);

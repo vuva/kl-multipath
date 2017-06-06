@@ -62,8 +62,8 @@ public class KLSender {
 			System.out.println(paths[i]);
 			try {
 				sockets[i] = new DatagramSocket();
-				byte[] buf = "sending something\n".getBytes();
-				sockets[i].send(new DatagramPacket(buf, buf.length, paths[i].dest, KLReceiver.PORT));
+				//byte[] buf = "sending something\n".getBytes();
+				//sockets[i].send(new DatagramPacket(buf, buf.length, paths[i].dest, KLReceiver.PORT));
 			} catch (SocketException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
