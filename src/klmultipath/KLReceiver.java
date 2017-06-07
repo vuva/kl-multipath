@@ -25,16 +25,22 @@ import org.apache.commons.cli.ParseException;
  * 
  * java -cp "bin:lib/commons-cli-1.2.jar" klmultipath.KLReceiver -p 127.0.0.1:127.0.0.1 -p 127.0.0.1:127.0.0.2 -p 127.0.0.1:127.0.0.3  -p 127.0.0.1:127.0.0.4  -o testrun
  * 
+ * In cross-traffic mode:
+ * java -cp "bin:lib/commons-cli-1.2.jar" klmultipath.KLReceiver -p 127.0.0.1:127.0.0.1 -p 127.0.0.1:127.0.0.2 -p 127.0.0.1:127.0.0.3  -p 127.0.0.1:127.0.0.4  -o testrun -x
+
+ * 
  * @author brenton
  *
  */
 public class KLReceiver {
 	
 	public static final int PORT = 7654;
+	public static final int CROSS_TRAFFIC_PORT = 7655;
 	
 	PathSpec[] paths = null;
 	String outfile_base = "";
 	DatagramSocket[] sockets = null;
+	boolean cross_trafic = false;
 	
 	/**
 	 * Constructor
@@ -42,10 +48,11 @@ public class KLReceiver {
 	 * @param path_strings
 	 * @param outfile_base
 	 */
-	public KLReceiver(String[] path_strings, String outfile_base) {
+	public KLReceiver(String[] path_strings, String outfile_base, boolean cross_traffic) {
 		paths = new PathSpec[path_strings.length];
 		sockets = new DatagramSocket[path_strings.length];
 		this.outfile_base = outfile_base;
+		this.cross_trafic = cross_traffic;
 		
 		for (int i=0; i<path_strings.length; i++) {
 			paths[i] = new PathSpec(path_strings[i]);
@@ -64,7 +71,12 @@ public class KLReceiver {
 	public void listen() {
 
 		for (int i=0; i<paths.length; i++) {
-			InetSocketAddress address = new InetSocketAddress(paths[i].dest, PORT);
+			InetSocketAddress address = null;
+			if (this.cross_trafic) {
+				address = new InetSocketAddress(paths[i].dest, CROSS_TRAFFIC_PORT);
+			} else {
+				address = new InetSocketAddress(paths[i].dest, PORT);
+			}
 			try {
 				sockets[i].bind(address);
 			} catch (SocketException e) {
@@ -74,18 +86,25 @@ public class KLReceiver {
 			DatagramSocket sock = sockets[i];
 			int threadnum = i;
 			String outfile = this.outfile_base+"_"+threadnum+".dat";
+			boolean xt = this.cross_trafic;
 			
 			Thread listener = new Thread() {
 				public void run() {
 					byte[] rxData = new byte[2048];
+
+					// if this receiver is for cross-traffic, don't bother writing a log file
 					FileWriter fstream = null;
-					try {
-						fstream = new FileWriter(outfile);
-					} catch (IOException e1) {
-						e1.printStackTrace();
-						System.exit(1);
+					BufferedWriter out = null;
+					if (! xt) {
+						try {
+							fstream = new FileWriter(outfile);
+						} catch (IOException e1) {
+							e1.printStackTrace();
+							System.exit(1);
+						}
+						out = new BufferedWriter(fstream);
 					}
-					BufferedWriter out = new BufferedWriter(fstream);
+					
 					while (true) {
 						DatagramPacket rxPacket = new DatagramPacket(rxData, rxData.length);
 						try {
@@ -94,40 +113,34 @@ public class KLReceiver {
 							e.printStackTrace();
 							System.exit(1);
 						}
-						long curtime = System.nanoTime();
+						if (! xt) {
+							long curtime = System.nanoTime();
 
-						// extract the info from the packet
-						byte[] rxd   = rxPacket.getData();
-						int k        = ((rxd[0]&0xFF) << 24) | ((rxd[1]&0xFF) << 16) | ((rxd[2]&0xFF) << 8) | ((rxd[3]&0xFF));
-						int index    = ((rxd[4]&0xFF) << 24) | ((rxd[5]&0xFF) << 16) | ((rxd[6]&0xFF) << 8) | ((rxd[7]&0xFF));
-						int seqnum   = ((rxd[8]&0xFF) << 24) | ((rxd[9]&0xFF) << 16) | ((rxd[10]&0xFF) << 8) | ((rxd[11]&0xFF));
-						long arrival = 0;
-						for (int b=0; b<8; b++) {
-							arrival <<= 8;
-							arrival |= (rxd[12+b] & 0xFF);
+							// extract the info from the packet
+							byte[] rxd   = rxPacket.getData();
+							int k = BytePacker.getInteger(rxd, 0);
+							int index = BytePacker.getInteger(rxd, 4);
+							int seqnum = BytePacker.getInteger(rxd, 8);
+							long arrival = BytePacker.getLong(rxd, 12);
+							long txtime = BytePacker.getLong(rxd, 20);
+
+							// write the data to the log file for this thread
+							StringJoiner sj = new StringJoiner("\t","","\n");
+							sj.add(""+arrival);
+							sj.add(""+txtime);
+							sj.add(""+curtime);
+							sj.add(""+k);
+							sj.add(""+index);
+							sj.add(""+seqnum);
+
+							try {
+								out.write(sj.toString());
+							} catch (IOException e) {
+								e.printStackTrace();
+								System.exit(1);
+							}
+							//System.out.println("received in thread "+threadnum);
 						}
-						long txtime = 0;
-						for (int b=0; b<8; b++) {
-							txtime <<= 8;
-							txtime |= (rxd[20+b] & 0xFF);
-						}
-						
-						// write the data to the log file for this thread
-						StringJoiner sj = new StringJoiner("\t","","\n");
-						sj.add(""+curtime);
-						sj.add(""+k);
-						sj.add(""+index);
-						sj.add(""+seqnum);
-						sj.add(""+arrival);
-						sj.add(""+txtime);
-						
-						try {
-							out.write(sj.toString());
-						} catch (IOException e) {
-							e.printStackTrace();
-							System.exit(1);
-						}
-						System.out.println("received in thread "+threadnum);
 					}
 				}
 			};
@@ -139,6 +152,7 @@ public class KLReceiver {
 
 		Options cli_options = new Options();
 		cli_options.addOption("h", "help", false, "print help message");
+		cli_options.addOption("x", "crosstraffic", false, "receiver for non-recorded crosstraffic");
 		cli_options.addOption("p", "path", true, "sender/reciever IP address pair in the form X.X.X.X:Y.Y.Y.Y");
 		cli_options.addOption(OptionBuilder.withLongOpt("outfile").hasArg().isRequired().withDescription("the base name of the output files").create("o"));
 		
@@ -153,10 +167,9 @@ public class KLReceiver {
 			System.exit(0);
 		}
 
-		int num_messages = options.hasOption("n") ? Integer.parseInt(options.getOptionValue("n")) : 1000;
 		String paths[] = options.hasOption("p") ? options.getOptionValues("p") : null;
 		
-		KLReceiver receiver = new KLReceiver(paths, options.getOptionValue("o"));
+		KLReceiver receiver = new KLReceiver(paths, options.getOptionValue("o"), options.hasOption("x"));
 		
 		receiver.listen();
 		
