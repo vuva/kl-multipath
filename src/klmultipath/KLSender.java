@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.SocketException;
-import java.util.Arrays;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.PosixParser;
 
 import klmultipath.randomprocesses.IntertimeProcess;
 
@@ -59,11 +57,7 @@ public class KLSender {
 			System.out.println(paths[i]);
 			try {
 				sockets[i] = new DatagramSocket();
-				//byte[] buf = "sending something\n".getBytes();
-				//sockets[i].send(new DatagramPacket(buf, buf.length, paths[i].dest, KLReceiver.PORT));
 			} catch (SocketException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
