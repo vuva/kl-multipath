@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.StringJoiner;
+import java.lang.Runtime;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -36,10 +37,14 @@ public class KLReceiver {
 	
 	public static final int PORT = 7654;
 	public static final int CROSS_TRAFFIC_PORT = 7655;
+
+	// lets the shutdown hook tell the program to exit
+	public static boolean is_running = true;
 	
 	PathSpec[] paths = null;
 	String outfile_base = "";
 	DatagramSocket[] sockets = null;
+	BufferedWriter[] out = null;
 	boolean cross_trafic = false;
 	
 	/**
@@ -57,11 +62,38 @@ public class KLReceiver {
 		for (int i=0; i<path_strings.length; i++) {
 			paths[i] = new PathSpec(path_strings[i]);
 			System.out.println(paths[i]);
+			if (! cross_trafic) {
+				out = new BufferedWriter[paths.length];
+			}
 			try {
 				sockets[i] = new DatagramSocket(null);
 			} catch (SocketException e) {
 				e.printStackTrace();
 			}
+		}
+		
+		// this class loops forever.  If we are running in normal mode, when
+		// the program is killed we still wand to flush and close the log files.
+		if (! cross_traffic) {
+			Runtime rt = Runtime.getRuntime();
+			rt.addShutdownHook(new Thread() {
+				public void run() {
+					KLReceiver.is_running = false;
+					try {
+						sleep(1000);
+						System.err.println("closing files...");
+						try {
+							for (int i=0; i<paths.length; i++) {
+								out[i].close();
+							}
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			});
 		}
 	}
 	
@@ -94,7 +126,6 @@ public class KLReceiver {
 
 					// if this receiver is for cross-traffic, don't bother writing a log file
 					FileWriter fstream = null;
-					BufferedWriter out = null;
 					if (! xt) {
 						try {
 							fstream = new FileWriter(outfile);
@@ -102,10 +133,10 @@ public class KLReceiver {
 							e1.printStackTrace();
 							System.exit(1);
 						}
-						out = new BufferedWriter(fstream);
+						out[threadnum] = new BufferedWriter(fstream);
 					}
 					
-					while (true) {
+					while (is_running) {
 						DatagramPacket rxPacket = new DatagramPacket(rxData, rxData.length);
 						try {
 							sock.receive(rxPacket);
@@ -134,7 +165,7 @@ public class KLReceiver {
 							sj.add(""+seqnum);
 
 							try {
-								out.write(sj.toString());
+								out[threadnum].write(sj.toString());
 							} catch (IOException e) {
 								e.printStackTrace();
 								System.exit(1);
