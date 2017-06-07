@@ -73,7 +73,7 @@ public class KLReceiver {
 		}
 		
 		// this class loops forever.  If we are running in normal mode, when
-		// the program is killed we still wand to flush and close the log files.
+		// the program is killed we still want to flush and close the log files.
 		if (! cross_traffic) {
 			Runtime rt = Runtime.getRuntime();
 			rt.addShutdownHook(new Thread() {
@@ -154,15 +154,17 @@ public class KLReceiver {
 							int seqnum = BytePacker.getInteger(rxd, 8);
 							long arrival = BytePacker.getLong(rxd, 12);
 							long txtime = BytePacker.getLong(rxd, 20);
+							int count = BytePacker.getInteger(rxd, 28);
 
 							// write the data to the log file for this thread
 							StringJoiner sj = new StringJoiner("\t","","\n");
+							sj.add(String.format("%09d",count));
+							sj.add(String.format("%09d",seqnum));
+							sj.add(String.format("%09d",index));
 							sj.add(""+arrival);
 							sj.add(""+txtime);
 							sj.add(""+curtime);
 							sj.add(""+k);
-							sj.add(""+index);
-							sj.add(""+seqnum);
 
 							try {
 								out[threadnum].write(sj.toString());

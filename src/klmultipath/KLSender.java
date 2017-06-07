@@ -71,13 +71,15 @@ public class KLSender {
 		long time_elapsed = 0;
 		
 		// if we are generating cross traffic, run forever
+		int count = 0;
 		for (int i=0; i<num_messages; i++) {
 			long txtime = System.nanoTime();
 			for (int j=0; j<k; j++) {
 				// write seq number and the arrival time and txtime into the packets
 				BytePacker.putInteger(tx_bufs[j], 8, i);
-				BytePacker.putLong(tx_bufs[j], 12, time_elapsed);
+				BytePacker.putLong(tx_bufs[j], 12, time_elapsed+sendstart);
 				BytePacker.putLong(tx_bufs[j], 20, txtime);
+				BytePacker.putInteger(tx_bufs[j], 28, count++);
 
 				try {
 					sockets[path_index].send(new DatagramPacket(tx_bufs[j],
