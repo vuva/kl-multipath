@@ -97,6 +97,7 @@ public class KLReceiver {
 		}
 	}
 	
+	
 	/**
 	 * Start listening for connections and recording received packets
 	 */
@@ -180,7 +181,13 @@ public class KLReceiver {
 			listener.start();
 		}
 	}
-
+	
+	
+	/**
+	 * main()
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 
 		Options cli_options = new Options();

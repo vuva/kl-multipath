@@ -30,7 +30,10 @@ import org.apache.commons.cli.ParseException;
  */
 public class KLSender {
 	
-	public static final int PACKETSIZE = 1024;
+	 // This packetsize is chosen so that the packets are 10000 = 1e+5 bits long.
+	 // There are 42 Bytes of overhead, so (1204+46)*8 = 10000.
+	public static final int PACKETSIZE = 1204;
+	public static final double RATE_SCALE = 1.0e8;
 	
 	public int k, l;
 	IntertimeProcess tx_process = null;
@@ -63,6 +66,11 @@ public class KLSender {
 		}
 	}
 	
+	
+	/**
+	 * 
+	 * @param num_messages
+	 */
 	public void startSending(int num_messages) {
 
 		int path_index = 0;
@@ -77,7 +85,8 @@ public class KLSender {
 			for (int j=0; j<k; j++) {
 				// write seq number and the arrival time and txtime into the packets
 				BytePacker.putInteger(tx_bufs[j], 8, i);
-				BytePacker.putLong(tx_bufs[j], 12, time_elapsed+sendstart);
+				//BytePacker.putLong(tx_bufs[j], 12, time_elapsed+sendstart);
+				BytePacker.putLong(tx_bufs[j], 12, endwait);
 				BytePacker.putLong(tx_bufs[j], 20, txtime);
 				BytePacker.putInteger(tx_bufs[j], 28, count++);
 
@@ -94,7 +103,8 @@ public class KLSender {
 			}
 				
 			// sleep for some length of time given by the arrival process
-			long dt = (long) (1000.0 * this.tx_process.nextInterval());
+			// scale this by 1e+5 so the rate on the command line can be in terms of Mb/s
+			long dt = (long) (RATE_SCALE * this.tx_process.nextInterval());
 			endwait += dt;
 			time_elapsed += dt;
 			long curtime = System.nanoTime();
@@ -113,7 +123,7 @@ public class KLSender {
 	
 	/**
 	 * We want the cross traffic to follow an independent process over each path.
-	 * That means we have to run he senders in separate threads, or get fancy with
+	 * That means we have to run the senders in separate threads, or get fancy with
 	 * the inter-packet times.
 	 */
 	public void startCrossTraffic() {
@@ -122,7 +132,7 @@ public class KLSender {
 		long endwait = sendstart;
 		byte[][] xtbufs = new byte[paths.length][];
 		for (int i=0; i<paths.length; i++) {
-			xtbufs[i] = new byte[1024];
+			xtbufs[i] = new byte[PACKETSIZE];
 		}
 		// we'll get fancy with the packet times.
 		// The traffic sent on each path will follow tx_process, and we keep
@@ -131,7 +141,7 @@ public class KLSender {
 		long[] nextpacket = new long[this.paths.length];
 		int nextpath = 0;
 		for (int p=0; p<paths.length; p++) {
-			nextpacket[p] = (long) (1000.0 * this.tx_process.nextInterval());
+			nextpacket[p] = (long) (RATE_SCALE * this.tx_process.nextInterval());
 			if (nextpacket[p] < nextpacket[nextpath]) {
 				nextpath = p;
 			}
@@ -160,7 +170,7 @@ public class KLSender {
 			}
 				
 			// sleep for some length of time given by the arrival process
-			long dt = (long) (1000.0 * this.tx_process.nextInterval());
+			long dt = (long) (RATE_SCALE * this.tx_process.nextInterval());
 			nextpacket[nextpath] += dt;
 			nextpath = 0;
 			for (int p=0; p<paths.length; p++) {
@@ -173,6 +183,11 @@ public class KLSender {
 	}
 	
 	
+	/**
+	 * main()
+	 * 
+	 * @param args
+	 */
 	public static void main(String[] args) {
 
 		Options cli_options = new Options();

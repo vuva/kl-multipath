@@ -37,6 +37,9 @@ public class PathSpec {
 		}
 	}
 	
+	/**
+	 * toString()
+	 */
 	public String toString() {
 		return src.toString()+":"+dest.toString();
 	}
