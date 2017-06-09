@@ -7,6 +7,12 @@ package klmultipath;
  * between CPUs, or between cores of the same CPU.  This class is just
  * a quick and easy experiment to see what happens on this machine.
  * 
+ * So far on my Ubuntu desktop and the Ubuntu emulab nodes I have not
+ * found any anomalies.  Even watched the process switch between all
+ * cores.
+ * 
+ * java -cp bin klmultipath.NanoTimeTracker
+ * 
  * @author brenton
  *
  */
