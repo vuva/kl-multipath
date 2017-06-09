@@ -33,7 +33,15 @@ public class KLSender {
 	 // This packetsize is chosen so that the packets are 10000 = 1e+5 bits long.
 	 // There are 42 Bytes of overhead, so (1204+46)*8 = 10000.
 	public static final int PACKETSIZE = 1204;
-	public static final double RATE_SCALE = 1.0e8;
+	
+	// The rate scaled to ns/pkt.
+	// We want a rate of 1.0 to give 1Mb/s throughput demand.
+	// We have 1e+4 b/pkt
+	// 1 Mb/s = 1e+6 b/s * (1e-9 s/ns)
+	//        = 1e-3 b/ns * (1e-4 pkt/b)
+	//        = 1e-7 pkt/ns
+	// ==> 1e+7 ns/pkt
+	public static final double RATE_SCALE = 1.0e7;
 	
 	public int k, l;
 	IntertimeProcess tx_process = null;
