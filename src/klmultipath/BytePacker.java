@@ -55,4 +55,17 @@ public class BytePacker {
 		}
 		return val;
 	}
+	
+	public static void putBytes(byte[] to, int toLoc, byte[] from, int fromLoc, int len) {
+	    // sanity check the inputs
+	    if (to.length < (toLoc+len) || from.length < (fromLoc+len)) {
+	        System.err.println("ERROR BytePacker.putBytes(): desired copy will exceed input size!");
+	        throw(new IndexOutOfBoundsException("ERROR BytePacker.putBytes(): desired copy will exceed input size!"));
+	    }
+	    
+	    for (int i=0; i<len; i++) {
+	        to[toLoc+i] = from[fromLoc+i];
+	    }
+	}
+	
 }

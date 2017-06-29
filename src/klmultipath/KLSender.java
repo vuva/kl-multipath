@@ -48,11 +48,28 @@ public class KLSender {
 	PathSpec[] paths = null;
 	DatagramSocket[] sockets = null;
 	byte[][] tx_bufs = null;
+	
+	NanoSynchro ns = null;
 
-	public KLSender(int k, int l, IntertimeProcess tx_process, String[] path_strings) {
+	public KLSender(int k, int l, IntertimeProcess tx_process, String[] path_strings, NanoSynchro ns) {
 		this.k = k;
 		this.l = l;
 		this.tx_process = tx_process;
+		this.ns = ns;
+		
+		// start the time time sync thing
+		// and wait a moment for it to get enough data on he other end
+		if (ns != null) {
+		    System.err.println("Letting the clock differences calibrate...");
+		    ns.start();
+		    try {
+                Thread.sleep(NanoSynchro.NUM_SAMPLES * NanoSynchro.SEND_INTERVAL * 2);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+		    System.err.println("done.");
+		}
+		
 		// initialize the connections
 		paths = new PathSpec[path_strings.length];
 		sockets = new DatagramSocket[path_strings.length];
@@ -125,7 +142,6 @@ public class KLSender {
 				curtime = System.nanoTime();
 			} while(curtime < endwait);
 		}
-		
 	}
 	
 	
@@ -231,7 +247,9 @@ public class KLSender {
 		}
 		IntertimeProcess tx_process = IntertimeProcess.parseProcessSpec(options.getOptionValues("S"));
 		
-		KLSender sender = new KLSender(k, l, tx_process, paths);
+		NanoSynchro ns = new NanoSynchro(null);
+		
+		KLSender sender = new KLSender(k, l, tx_process, paths, ns);
 		
 		if (options.hasOption("x")) {
 			sender.startCrossTraffic();
@@ -239,6 +257,8 @@ public class KLSender {
 			sender.startSending(num_messages);
 		}
 		
+		ns.interrupt();
+		ns.requestStop();
 	}
 
 }

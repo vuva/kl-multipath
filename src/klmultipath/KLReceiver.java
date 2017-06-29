@@ -46,6 +46,7 @@ public class KLReceiver {
 	DatagramSocket[] sockets = null;
 	BufferedWriter[] out = null;
 	boolean cross_trafic = false;
+	NanoSynchro ns = null;
 	
 	/**
 	 * Constructor
@@ -53,11 +54,17 @@ public class KLReceiver {
 	 * @param path_strings
 	 * @param outfile_base
 	 */
-	public KLReceiver(String[] path_strings, String outfile_base, boolean cross_traffic) {
+	public KLReceiver(String[] path_strings, String outfile_base, boolean cross_traffic, NanoSynchro ns) {
 		paths = new PathSpec[path_strings.length];
 		sockets = new DatagramSocket[path_strings.length];
 		this.outfile_base = outfile_base;
 		this.cross_trafic = cross_traffic;
+		this.ns = ns;
+
+		// start the time time sync thing
+		if (ns != null) {
+		    ns.start();
+		}
 		
 		for (int i=0; i<path_strings.length; i++) {
 			paths[i] = new PathSpec(path_strings[i]);
@@ -147,6 +154,7 @@ public class KLReceiver {
 						}
 						if (! xt) {
 							long curtime = System.nanoTime();
+							long clock_offset = ns.getClockCorrection();
 
 							// extract the info from the packet
 							byte[] rxd   = rxPacket.getData();
@@ -166,6 +174,7 @@ public class KLReceiver {
 							sj.add(""+txtime);
 							sj.add(""+curtime);
 							sj.add(""+k);
+							sj.add(""+clock_offset);
 
 							try {
 								out[threadnum].write(sj.toString());
@@ -194,6 +203,7 @@ public class KLReceiver {
 		cli_options.addOption("h", "help", false, "print help message");
 		cli_options.addOption("x", "crosstraffic", false, "receiver for non-recorded crosstraffic");
 		cli_options.addOption("p", "path", true, "sender/reciever IP address pair in the form X.X.X.X:Y.Y.Y.Y");
+		cli_options.addOption("t", "time_sync_server", true, "IP address of the machine to try and sync nanoTime with");
 		cli_options.addOption(OptionBuilder.withLongOpt("outfile").hasArg().isRequired().withDescription("the base name of the output files").create("o"));
 		
 		CommandLineParser parser = new GnuParser();
@@ -209,7 +219,12 @@ public class KLReceiver {
 
 		String paths[] = options.hasOption("p") ? options.getOptionValues("p") : null;
 		
-		KLReceiver receiver = new KLReceiver(paths, options.getOptionValue("o"), options.hasOption("x"));
+		NanoSynchro ns = null;
+		if (options.hasOption("t")) {
+		    ns = new NanoSynchro(options.getOptionValue("t"));
+		}
+		
+		KLReceiver receiver = new KLReceiver(paths, options.getOptionValue("o"), options.hasOption("x"), ns);
 		
 		receiver.listen();
 		
