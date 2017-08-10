@@ -119,7 +119,7 @@ public class KLSender {
 					sockets[path_index].send(new DatagramPacket(tx_bufs[j],
 							tx_bufs[j].length,
 							paths[path_index].dest,
-							paths[path_index].dstPort!=null?paths[i].dstPort:KLReceiver.PORT));
+							paths[path_index].dstPort!=null?paths[path_index].dstPort:KLReceiver.PORT));
 				} catch (IOException e) {
 					e.printStackTrace();
 					System.exit(1);
