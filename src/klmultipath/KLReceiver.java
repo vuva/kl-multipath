@@ -8,7 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.util.StringJoiner;
-import java.lang.Runtime;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -36,6 +36,8 @@ import org.apache.commons.cli.ParseException;
 public class KLReceiver {
 	
 	public static final int PORT = 7654;
+	public static final int MIN_PORT = 7656;
+	public static final int MAX_PORT = 17654;
 	public static final int CROSS_TRAFFIC_PORT = 7655;
 
 	// lets the shutdown hook tell the program to exit
@@ -115,7 +117,7 @@ public class KLReceiver {
 			if (this.cross_trafic) {
 				address = new InetSocketAddress(paths[i].dest, CROSS_TRAFFIC_PORT);
 			} else {
-				address = new InetSocketAddress(paths[i].dest, PORT);
+				address = new InetSocketAddress(paths[i].dest, paths[i].dstPort!=null?paths[i].dstPort:PORT);
 			}
 			try {
 				sockets[i].bind(address);
@@ -202,7 +204,7 @@ public class KLReceiver {
 		Options cli_options = new Options();
 		cli_options.addOption("h", "help", false, "print help message");
 		cli_options.addOption("x", "crosstraffic", false, "receiver for non-recorded crosstraffic");
-		cli_options.addOption("p", "path", true, "sender/reciever IP address pair in the form X.X.X.X:Y.Y.Y.Y");
+		cli_options.addOption("p", "path", true, "sender/reciever IP address pair in the form X.X.X.X[,port]:Y.Y.Y.Y[,port]");
 		cli_options.addOption("t", "time_sync_server", true, "IP address of the machine to try and sync nanoTime with");
 		cli_options.addOption(OptionBuilder.withLongOpt("outfile").hasArg().isRequired().withDescription("the base name of the output files").create("o"));
 		

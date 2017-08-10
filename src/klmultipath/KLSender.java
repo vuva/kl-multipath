@@ -119,7 +119,7 @@ public class KLSender {
 					sockets[path_index].send(new DatagramPacket(tx_bufs[j],
 							tx_bufs[j].length,
 							paths[path_index].dest,
-							KLReceiver.PORT));
+							paths[path_index].dstPort!=null?paths[i].dstPort:KLReceiver.PORT));
 				} catch (IOException e) {
 					e.printStackTrace();
 					System.exit(1);
@@ -220,7 +220,7 @@ public class KLSender {
 		cli_options.addOption("l", "l", true, "number of packets that must be recieved");
 		cli_options.addOption("n", "numsamples", true, "number of transmission to make");
 		cli_options.addOption("i", "samplinginterval", true, "samplig interval");
-		cli_options.addOption("p", "path", true, "sender/reciever IP address pair in the form X.X.X.X:Y.Y.Y.Y");
+		cli_options.addOption("p", "path", true, "sender/reciever IP address pair in the form X.X.X.X[,port]:Y.Y.Y.Y[,port]");
 		cli_options.addOption("x", "crosstraffic", false, "sender for crosstraffic");
 		//cli_options.addOption(OptionBuilder.withLongOpt("queuetype").hasArgs().isRequired().withDescription("queue type and arguments").create("q"));
 		//cli_options.addOption(OptionBuilder.withLongOpt("outfile").hasArg().isRequired().withDescription("the base name of the output files").create("o"));

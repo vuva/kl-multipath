@@ -14,7 +14,9 @@ import java.net.UnknownHostException;
 public class PathSpec {
 	
 	InetAddress src;
+	Integer srcPort;
 	InetAddress dest;
+	Integer dstPort;
 	
 	/**
 	 * Constructor.
@@ -29,8 +31,21 @@ public class PathSpec {
 			throw new IllegalArgumentException("ERROR: malformated path spec: "+s);
 		}
 		try {
-			src = InetAddress.getByName(ips[0]);
-			dest = InetAddress.getByName(ips[1]);
+			if (ips[0].contains(",")) {
+				String[] sep = s.split(",", 0);
+				src = InetAddress.getByName(sep[0]);
+				srcPort = Integer.parseInt(sep[1]) ;
+			}else{
+				src = InetAddress.getByName(ips[0]);
+			}			
+
+			if (ips[1].contains(",")) {
+				String[] dep = s.split(",", 0);
+				dest = InetAddress.getByName(dep[0]);
+				dstPort = Integer.parseInt(dep[1]) ;
+			}else{
+				dest = InetAddress.getByName(ips[1]);
+			}	
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 			System.exit(0);
