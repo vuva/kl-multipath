@@ -32,7 +32,7 @@ public class PathSpec {
 		}
 		try {
 			if (ips[0].contains(",")) {
-				String[] sep = s.split(",", 0);
+				String[] sep = ips[0].split(",", 0);
 				src = InetAddress.getByName(sep[0]);
 				srcPort = Integer.parseInt(sep[1]) ;
 			}else{
@@ -40,7 +40,7 @@ public class PathSpec {
 			}			
 
 			if (ips[1].contains(",")) {
-				String[] dep = s.split(",", 0);
+				String[] dep = ips[1].split(",", 0);
 				dest = InetAddress.getByName(dep[0]);
 				dstPort = Integer.parseInt(dep[1]) ;
 			}else{
